@@ -1,0 +1,27 @@
+# Dimension drill-down order for root-cause decomposition.
+# The decomposition engine walks these dimensions top-to-bottom,
+# at each level picking the segment(s) that explain the most of the
+# remaining change, then recursing into the next dimension filtered
+# to that segment.
+dimensions:
+  - region
+  - channel
+  - product_category
+  - customer_segment
+
+metric: revenue
+
+# Stop drilling deeper than this many levels.
+max_depth: 3
+
+# A node's change must be at least this fraction of the parent node's
+# total change to be worth expanding further.
+min_contribution_share: 0.15
+
+# Minimum number of underlying daily rows required to run a
+# significance test on a segment (below this, it's flagged "insufficient data").
+min_sample_rows: 5
+
+# Significance threshold (p-value) for flagging a segment's change as
+# statistically significant vs. noise.
+alpha: 0.05
