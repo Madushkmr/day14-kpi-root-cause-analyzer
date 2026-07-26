@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Day 14 — KPI Root-Cause Analyzer</title>
+<style>
+  :root { color-scheme: dark; }
+  body { background:#0f1117; color:#e6e8ee; font-family: -apple-system, Segoe UI, Roboto, sans-serif; margin:0; padding:24px 32px; }
+  h1 { font-size: 20px; margin-bottom:4px; }
+  .subtitle { color:#8b90a0; margin-bottom:24px; font-size:14px; }
+  .layout { display:flex; gap:24px; align-items:flex-start; }
+  .sidebar { width:260px; flex-shrink:0; background:#161925; border-radius:10px; padding:16px; }
+  .main { flex:1; min-width:0; }
+  .card { background:#161925; border-radius:10px; padding:20px; margin-bottom:20px; }
+  .run-item { padding:8px 10px; border-radius:6px; margin-bottom:6px; cursor:pointer; font-size:13px; color:#c4c8d4; }
+  .run-item:hover { background:#1f2333; }
+  .run-item.active { background:#2a3050; color:#fff; }
+  button { background:#4c6ef5; color:#fff; border:none; border-radius:6px; padding:9px 16px; font-size:14px; cursor:pointer; }
+  button:hover { background:#3b5bdb; }
+  .stat-row { display:flex; gap:16px; margin-bottom:16px; flex-wrap:wrap; }
+  .stat { background:#1c2032; border-radius:8px; padding:12px 16px; min-width:140px; }
+  .stat .label { font-size:11px; color:#8b90a0; text-transform:uppercase; letter-spacing:.04em; }
+  .stat .value { font-size:20px; font-weight:600; margin-top:4px; }
+  .pos { color:#51cf66; }
+  .neg { color:#ff6b6b; }
+  .narrative { background:#1c2032; border-left:3px solid #4c6ef5; padding:14px 16px; border-radius:6px; line-height:1.6; font-size:14px; color:#d4d7e0; }
+  .tree { margin-top:8px; }
+  .node { border:1px solid #262a3d; border-radius:8px; padding:10px 14px; margin:6px 0 6px 0; background:#12141f; }
+  .node-header { display:flex; justify-content:space-between; align-items:center; font-size:13px; }
+  .node-label { font-weight:600; }
+  .node-meta { color:#8b90a0; font-size:12px; margin-top:4px; }
+  .sig-badge { font-size:11px; padding:2px 7px; border-radius:10px; margin-left:8px; }
+  .sig-yes { background:#1b3a2b; color:#51cf66; }
+  .sig-no { background:#3a2b1b; color:#ffa94d; }
+  .sig-na { background:#2a2a2a; color:#8b90a0; }
+  .children { margin-left:22px; border-left:1px dashed #2c3048; padding-left:14px; }
+  .others { font-size:12px; color:#8b90a0; margin-top:6px; }
+  select, input { background:#1c2032; color:#e6e8ee; border:1px solid #2c3048; border-radius:6px; padding:6px 8px; }
+  label { font-size:12px; color:#8b90a0; display:block; margin:10px 0 4px; }
+  .empty { color:#8b90a0; font-size:14px; }
+</style>
+</head>
+<body>
+  <h1>Day 14 — KPI Root-Cause / Driver Analyzer</h1>
+  <div class="subtitle">Recursive contribution-tree decomposition + significance testing + narrative generation, over synthetic multi-dimensional sales data.</div>
+
+  <div class="layout">
+    <div class="sidebar">
+      <button onclick="runAnalysis()">Run new analysis</button>
+      <label>Max depth</label>
+      <input id="cfg-depth" type="number" value="{{ config.max_depth }}" min="1" max="4" style="width:100%">
+      <label>Min contribution share</label>
+      <input id="cfg-share" type="number" value="{{ config.min_contribution_share }}" step="0.05" min="0.01" max="0.9" style="width:100%">
+
+      <div style="margin-top:20px; font-size:12px; color:#8b90a0; text-transform:uppercase; letter-spacing:.04em;">History</div>
+      <div id="run-list">
+        {% for r in runs %}
+        <div class="run-item {% if latest and r.id == latest.id %}active{% endif %}" onclick="loadRun({{ r.id }})">
+          #{{ r.id }} · {{ r.pct_change }}% · {{ r.created_at }}
+        </div>
+        {% else %}
+        <div class="empty">No runs yet.</div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="main">
+      <div id="content">
+        {% if latest %}
+          {% include "_run.html" %}
+        {% else %}
+          <div class="card empty">No analysis yet. Click "Run new analysis" (make sure you've run <code>python seed.py</code> first).</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+<script>
+async function runAnalysis() {
+  const max_depth = parseInt(document.getElementById('cfg-depth').value, 10);
+  const min_contribution_share = parseFloat(document.getElementById('cfg-share').value);
+  const res = await fetch('/api/analyze', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({max_depth, min_contribution_share})
+  });
+  if (!res.ok) { const e = await res.json(); alert(e.error || 'Analysis failed'); return; }
+  location.reload();
+}
+
+async function loadRun(id) {
+  window.location.href = '/?run=' + id;
+}
+</script>
+</body>
+</html>

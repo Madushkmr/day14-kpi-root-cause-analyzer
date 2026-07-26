@@ -1,0 +1,57 @@
+{% macro sig_badge(sig) %}
+  {% if sig.status == "insufficient_data" %}
+    <span class="sig-badge sig-na">n/a data</span>
+  {% elif sig.significant %}
+    <span class="sig-badge sig-yes">significant (p={{ '%.4f'|format(sig.p_value) }})</span>
+  {% else %}
+    <span class="sig-badge sig-no">noise? (p={{ '%.4f'|format(sig.p_value) }})</span>
+  {% endif %}
+{% endmacro %}
+
+{% macro render_node(node) %}
+<div class="node">
+  <div class="node-header">
+    <span class="node-label">{{ node.label }}</span>
+    <span class="{{ 'pos' if node.change >= 0 else 'neg' }}">
+      {{ '%+.0f'|format(node.change) }} ({{ '%+.1f'|format(node.pct_change) if node.pct_change is not none else 'n/a' }}%)
+    </span>
+  </div>
+  <div class="node-meta">
+    baseline {{ '%.0f'|format(node.baseline_total) }} &rarr; current {{ '%.0f'|format(node.current_total) }}
+    {{ sig_badge(node.significance) }}
+    {% if node.share_of_parent_change is not none %}
+      · {{ '%.0f'|format(node.share_of_parent_change * 100) }}% of parent change
+    {% endif %}
+  </div>
+  {% if node.other_segments %}
+  <div class="others">
+    Other {{ node.dimension_expanded.replace('_',' ') }} segments (below drill-down threshold):
+    {% for o in node.other_segments %}{{ o.value }} ({{ '%+.0f'|format(o.change) }}){% if not loop.last %}, {% endif %}{% endfor %}
+  </div>
+  {% endif %}
+  {% if node.children %}
+  <div class="children">
+    {% for child in node.children %}
+      {{ render_node(child) }}
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endmacro %}
+
+<div class="card">
+  <div class="stat-row">
+    <div class="stat"><div class="label">Metric</div><div class="value">{{ latest.metric }}</div></div>
+    <div class="stat"><div class="label">Baseline total</div><div class="value">{{ '%.0f'|format(latest.baseline_total) }}</div></div>
+    <div class="stat"><div class="label">Current total</div><div class="value">{{ '%.0f'|format(latest.current_total) }}</div></div>
+    <div class="stat"><div class="label">Change</div><div class="value {{ 'pos' if latest.pct_change >= 0 else 'neg' }}">{{ '%+.1f'|format(latest.pct_change) }}%</div></div>
+  </div>
+  <div class="narrative">{{ latest.narrative }}</div>
+</div>
+
+<div class="card">
+  <div style="font-size:13px; color:#8b90a0; text-transform:uppercase; letter-spacing:.04em; margin-bottom:10px;">Contribution / drill-down tree</div>
+  <div class="tree">
+    {{ render_node(latest.tree) }}
+  </div>
+</div>
